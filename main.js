@@ -7,8 +7,8 @@ let CONFIG = {
         margin: { top: 40, right: 30, bottom: 30, left: 60 }
     },
     heatmapParams: {
-        width: 490,
-        height: 550,
+        width: 630,
+        height: 570,
         margin: { top: 90, rigth: 10, left: 20 }
     },
     trantions: 500,
@@ -94,8 +94,8 @@ function updateInfoDiv(anime, chapter) {
 
 function heatmap() {
     const anime = CONFIG.anime;
-    const N = 20;
-    const R = 10;
+    const N = 32;
+    const R = 8;
     const DELTA = 3;
     const visWidth = (2 * R + DELTA) * N;
 
@@ -127,8 +127,29 @@ function heatmap() {
 
         const paintBorder = () => {
             visG.selectAll(".episodeMark")
-                .attr("stroke", d => CONFIG.border ? seasonScale(d.imdb_season) : scoreScale(d.score))
+                .attr("stroke", d => scoreScale(d.score))
         }
+
+
+        let last = 1;
+        let pos = [0, 0];
+        d.map((e, i) => {
+            e.pos = [pos[0], pos[1]];
+            pos[0]++;
+            if (pos[0] == N) {
+                pos[1]++;
+                pos[0] = 0
+            }
+
+            if (e.imdb_season != last) {
+                pos[1]++;
+                pos[1]++;
+                pos[0] = 0
+                last = e.imdb_season
+                e.pos = [pos[0], pos[1]];
+            }
+        })
+
 
         const episodeMark = visG.selectAll(".episodeMark")
             .data(d)
@@ -136,11 +157,21 @@ function heatmap() {
                 enter => {
                     const mark = enter.append("g").attr("class", "episodeMark");
 
-                    mark.attr("transform", (_, i) => {
-                        let x = (i % N) * (2 * R + DELTA);
-                        let y = Math.floor(i / N) * (2 * R + DELTA);
-                        return `translate(${x}, ${y})`;
-                    })
+                    if (CONFIG.border) {
+                        mark.attr("transform", (d, i) => {
+                            let x = (d.pos[0]) * (2 * R + DELTA);
+                            let y = d.pos[1] * (2 * R + DELTA);
+                            return `translate(${x}, ${y})`;
+                        })
+                    }
+                    else {
+                        mark.attr("transform", (d, i) => {
+                            let x = (i % N) * (2 * R + DELTA);
+                            let y = Math.floor(i / N) * (2 * R + DELTA);
+                            return `translate(${x}, ${y})`;
+                        })
+                    }
+
 
                     const canon = mark.filter(d => d.canon == "canon")
                         .append("rect")
@@ -165,12 +196,32 @@ function heatmap() {
                         .attr("fill", d => scoreScale(d.score))
 
                     mark
-                        .attr("stroke", d => CONFIG.border ? seasonScale(d.imdb_season) : scoreScale(d.score))
+                        .attr("stroke", d => scoreScale(d.score))
                         .attr("stroke-width", "2px");
 
                     return mark;
                 },
                 update => {
+                    if (CONFIG.border) {
+                        update
+                            .transition("as")
+                            .duration(CONFIG.trantions)
+                            .attr("transform", (d, i) => {
+                                let x = (d.pos[0]) * (2 * R + DELTA);
+                                let y = d.pos[1] * (2 * R + DELTA);
+                                return `translate(${x}, ${y})`;
+                            })
+                    }
+                    else {
+                        update
+                            .transition("as")
+                            .duration(CONFIG.trantions)
+                            .attr("transform", (d, i) => {
+                                let x = (i % N) * (2 * R + DELTA);
+                                let y = Math.floor(i / N) * (2 * R + DELTA);
+                                return `translate(${x}, ${y})`;
+                            })
+                    }
 
                     update
                         .select("rect")
@@ -178,8 +229,8 @@ function heatmap() {
                         .attr("fill", d => scoreScale(d.score))
 
                     update
-                        .transition().duration(CONFIG.trantions)
-                        .attr("stroke", d => CONFIG.border ? seasonScale(d.imdb_season) : scoreScale(d.score))
+                        .transition("stroke").duration(CONFIG.trantions)
+                        .attr("stroke", d => scoreScale(d.score))
 
                     return update
                 },
@@ -216,7 +267,7 @@ function heatmap() {
 
         d3.select("#seasons").on("click", event => {
             CONFIG.border = event.target.checked;
-            paintBorder()
+            heatmap()
         })
 
         contextG
@@ -338,6 +389,8 @@ function boxPlot(data) {
         return { key, q1, median, q3, interQuantileRange, min, max, outliers };
     });
 
+    const seasonScale = d3.scaleOrdinal(d3.schemeDark2)
+        .domain(data.map(d => d.imdb_season));
 
 
     d3.select("#visBoxplot")
@@ -380,7 +433,7 @@ function boxPlot(data) {
                     .attr("height", boxHeight)
                     .attr("width", 0)
                     .attr("stroke", "black")
-                    .style("fill", "#69b3a2")
+                    .style("fill", d => seasonScale(d.key))
                     .transition()
                     .duration(CONFIG.trantions)
                     .attr("x", d => x(d.q1))
