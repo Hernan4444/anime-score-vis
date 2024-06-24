@@ -1,0 +1,557 @@
+let CONFIG = {
+    border: false,
+    anime: "Gintama",
+    boxPlotParams: {
+        width: 300,
+        height: 200,
+        margin: { top: 40, right: 30, bottom: 30, left: 60 }
+    },
+    heatmapParams: {
+        width: 490,
+        height: 550,
+        margin: { top: 90, rigth: 10, left: 20 }
+    },
+    trantions: 500,
+}
+
+d3.json("code/data.json").then(datasets => {
+    console.log(datasets)
+    let names = datasets.map(d => d.name)
+    d3.select("#anime")
+        .selectAll("option")
+        .data(names)
+        .join("option")
+        .attr("value", d => d)
+        .text(d => d);
+
+    d3.select("#anime")
+        .on("change", event => {
+            CONFIG.anime = event.target.value
+            heatmap();
+        })
+    d3.select("#minColor").on("change", _ => heatmap())
+    d3.select("#maxColor").on("change", _ => heatmap())
+    startVisualization()
+})
+
+function startVisualization() {
+
+    function prepareHeatmap() {
+        const WIDTH = CONFIG.heatmapParams.width;
+        const HEIGHT = CONFIG.heatmapParams.height;
+        const MARGIN = CONFIG.heatmapParams.margin;
+
+        const svg = d3.select("#visHeatmap")
+            .attr("width", WIDTH)
+            .attr("height", HEIGHT);
+
+        svg.append("g").attr("id", "visG")
+            .attr("transform", `translate(${MARGIN.rigth}, ${MARGIN.top})`);
+
+        const contextG = svg.append("g").append("g").attr("id", "contextG")
+            .attr("transform", `translate(${MARGIN.rigth}, 20)`)
+
+        contextG.append("defs")
+            .append("linearGradient")
+            .attr("id", "linear-gradient");
+    }
+
+    function prepareBoxplot() {
+        const margin = CONFIG.boxPlotParams.margin
+        const width = CONFIG.boxPlotParams.width - margin.left - margin.right;
+        const height = CONFIG.boxPlotParams.height - margin.top - margin.bottom;
+
+        let vis = d3.select("#visBoxplot")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g").attr("class", "vis")
+            .attr("transform", `translate(${margin.left},${margin.top})`)
+
+        vis.append("g").attr("class", "axisY")
+        vis.append("g").attr("class", "axisX").attr("transform", `translate(0,${height})`)
+
+    }
+
+
+    prepareHeatmap()
+    prepareBoxplot()
+
+    heatmap()
+}
+
+
+function updateInfoDiv(anime, chapter) {
+    d3.select(".info").style("display", "block")
+    d3.select("#imgInfo").attr("src", `code/img/${anime}/img_${chapter.id}.jpg`)
+    d3.select("#titleInfo").text(chapter.title)
+    d3.select("#seasonInfo").text(chapter.imdb_season)
+    let options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    d3.select("#releaseInfo").text(chapter.release.toLocaleDateString("en-US", options))
+    d3.select("#sinopsysInfo").text(chapter.subtitle)
+}
+
+
+
+function heatmap() {
+    const anime = CONFIG.anime;
+    const N = 20;
+    const R = 10;
+    const DELTA = 3;
+    const visWidth = (2 * R + DELTA) * N;
+
+    const svg = d3.select("#visHeatmap");
+    const visG = svg.select("#visG");
+    const contextG = svg.select("#contextG");
+    const linearGradient = contextG.select("linearGradient");
+
+    d3.tsv(`code/data/${anime}.tsv`, d3.autoType).then(d => {
+        updateInfoDiv(anime, d[0]);
+        boxPlot(d);
+
+        let minScoreValue = d3.select("#minColor").property("value");
+        let maxScoreValue = d3.select("#maxColor").property("value");
+
+        minScoreValue = minScoreValue == "default" ? d3.min(d, d => d.score) : +minScoreValue;
+        maxScoreValue = maxScoreValue == "default" ? d3.max(d, d => d.score) : +maxScoreValue;
+
+
+        const scoreScale = d3.scaleSequential(d3.interpolateReds)
+            .domain([minScoreValue, maxScoreValue]);
+
+        const seasonScale = d3.scaleOrdinal(d3.schemeDark2)
+            .domain(d.map(d => d.imdb_season));
+
+        const posScoreScale = d3.scaleLinear()
+            .domain([minScoreValue, maxScoreValue])
+            .range([0, visWidth]);
+
+        const paintBorder = () => {
+            visG.selectAll(".episodeMark")
+                .attr("stroke", d => CONFIG.border ? seasonScale(d.imdb_season) : scoreScale(d.score))
+        }
+
+        const episodeMark = visG.selectAll(".episodeMark")
+            .data(d)
+            .join(
+                enter => {
+                    const mark = enter.append("g").attr("class", "episodeMark");
+
+                    mark.attr("transform", (_, i) => {
+                        let x = (i % N) * (2 * R + DELTA);
+                        let y = Math.floor(i / N) * (2 * R + DELTA);
+                        return `translate(${x}, ${y})`;
+                    })
+
+                    const canon = mark.filter(d => d.canon == "canon")
+                        .append("rect")
+                        .attr("x", R)
+                        .attr("y", R)
+                        .attr("width", 0)
+                        .attr("height", 0)
+                        .attr("fill", d => scoreScale(d.score))
+
+
+                    canon.transition().duration(CONFIG.trantions)
+                        .attr("x", 0)
+                        .attr("y", 0)
+                        .attr("width", 2 * R)
+                        .attr("height", 2 * R)
+
+                    mark.filter(d => d.canon != "canon")
+                        .append("circle")
+                        .attr("r", R)
+                        .attr("cx", R)
+                        .attr("cy", R)
+                        .attr("fill", d => scoreScale(d.score))
+
+                    mark
+                        .attr("stroke", d => CONFIG.border ? seasonScale(d.imdb_season) : scoreScale(d.score))
+                        .attr("stroke-width", "2px");
+
+                    return mark;
+                },
+                update => {
+
+                    update
+                        .select("rect")
+                        .transition().duration(CONFIG.trantions)
+                        .attr("fill", d => scoreScale(d.score))
+
+                    update
+                        .transition().duration(CONFIG.trantions)
+                        .attr("stroke", d => CONFIG.border ? seasonScale(d.imdb_season) : scoreScale(d.score))
+
+                    return update
+                },
+                exit => {
+                    exit.selectAll("rect")
+                        .transition().duration(CONFIG.trantions)
+                        .attr("width", 0)
+                        .attr("height", 0)
+                        .attr("x", R)
+                        .attr("y", R)
+
+                    return exit.transition().delay(CONFIG.trantions).remove()
+                }
+            )
+            .on("mouseenter", (event, selected) => {
+                legendRect
+                    .attr("x", posScoreScale(selected.score))
+                    .attr("opacity", 1);
+
+                d3.select(event.target).attr("stroke", "black");
+
+                d3.select("#visBoxplot")
+                    .selectAll("g.box")
+                    .attr("opacity", d => selected.imdb_season == d.key ? 1 : 0.2);
+
+                updateInfoDiv(anime, selected)
+
+            })
+            .on("mouseleave", (event, d) => {
+                legendRect.attr("opacity", 0);
+                d3.select("#visBoxplot").selectAll("g.box").attr("opacity", 1);
+                paintBorder();
+            })
+
+        d3.select("#seasons").on("click", event => {
+            CONFIG.border = event.target.checked;
+            paintBorder()
+        })
+
+        contextG
+            .selectAll(".title")
+            .data([anime])
+            .join("text")
+            .attr("dominant-baseline", "middle")
+            .attr("text-anchor", "middle")
+            .attr("x", visWidth / 2)
+            .attr("y", 0)
+            .attr("class", "title")
+            .text(d => `${d} Score per Chapter`);
+
+        linearGradient
+            .selectAll("stop")
+            .data([
+                { offset: "0%", color: scoreScale(minScoreValue) },
+                { offset: "100%", color: scoreScale(maxScoreValue) }
+            ])
+            .join("stop")
+            .attr("offset", d => d.offset)
+            .attr("stop-color", d => d.color);
+
+        contextG
+            .selectAll("rect")
+            .data([anime])
+            .join("rect")
+            .attr("x", 0)
+            .attr("y", 10)
+            .attr("width", visWidth)
+            .attr("height", 20)
+            .style("fill", "url(#linear-gradient)");
+
+        contextG
+            .selectAll(".textLegend")
+            .data([minScoreValue, maxScoreValue])
+            .join("text")
+            .attr("class", "textLegend")
+            .attr("x", d => d == minScoreValue ? 0 : visWidth)
+            .attr("y", 30)
+            .attr("dominant-baseline", "text-before-edge")
+            .attr("text-anchor", d => d == minScoreValue ? "start" : "end")
+            .text(d => d)
+
+        const legendRect = contextG
+            .selectAll("#legendRect")
+            .data([anime])
+            .join("rect")
+            .attr("y", 10)
+            .attr("id", "legendRect")
+            .attr("height", 20)
+            .attr("width", 3)
+            .attr("fill", "black")
+            .attr("opacity", "0");
+
+        const brush = d3.brushX()
+            .extent([[0, 10], [visWidth, 30]])
+            .on("brush end", brushed);
+
+        contextG.selectAll(".brush").data([anime]).join("g")
+            .attr("class", "brush")
+            .call(brush)
+            .call(brush.move, null)
+
+        function brushed({ selection }) {
+            if (!selection) {
+                episodeMark.style("filter", null)
+                return;
+            }
+            const [x0, x1] = selection;
+            const minScoreBrush = posScoreScale.invert(x0);
+            const maxScoreBrush = posScoreScale.invert(x1);
+            episodeMark.style("filter", d => {
+                if (minScoreBrush <= d.score && d.score <= maxScoreBrush)
+                    return null;
+                return 'opacity(10%)'
+            })
+
+        }
+
+    })
+
+
+}
+
+
+function boxPlot(data) {
+    const anime = CONFIG.anime;
+
+    const svg = d3.select("#visBoxplot").select(".vis");
+    const margin = CONFIG.boxPlotParams.margin;
+    const width = CONFIG.boxPlotParams.width - margin.left - margin.right;
+    const height = CONFIG.boxPlotParams.height - margin.top - margin.bottom;
+
+    const y = d3.scaleBand()
+        .range([0, height])
+        .domain([...new Set(data.map(d => d.imdb_season))])
+        .padding(0.3);
+
+    const x = d3.scaleLinear()
+        .domain([Math.floor(d3.min(data, d => d.score) * 0.9), 10])
+        .range([0, width]);
+
+    const boxHeight = y.bandwidth();
+
+    svg.select(".axisY").call(d3.axisLeft(y));
+    svg.select(".axisX").call(d3.axisBottom(x).ticks(4));
+
+    const sumstat = Array.from(d3.group(data, d => d.imdb_season), ([key, value]) => {
+        const scores = value.map(d => d.score).sort(d3.ascending);
+        const q1 = d3.quantile(scores, .25);
+        const median = d3.quantile(scores, .5);
+        const q3 = d3.quantile(scores, .75);
+        const interQuantileRange = q3 - q1;
+        const min = Math.max(d3.min(scores), q1 - 1.5 * interQuantileRange);
+        const max = Math.min(d3.max(scores), q3 + 1.5 * interQuantileRange);
+        const outliers = scores.filter(d => d < min || d > max);
+
+        return { key, q1, median, q3, interQuantileRange, min, max, outliers };
+    });
+
+
+
+    d3.select("#visBoxplot")
+        .selectAll(".title")
+        .data([anime])
+        .join("text")
+        .attr("dominant-baseline", "middle")
+        .attr("text-anchor", "middle")
+        .attr("x", CONFIG.boxPlotParams.width / 2)
+        .attr("y", 20)
+        .attr("class", "title")
+        .text(`Score per Season`);
+
+
+
+    svg.selectAll("g.box")
+        .data(sumstat, d => d.key)
+        .join(
+            enter => {
+                const g = enter.append("g")
+                    .attr("class", "box")
+                    .attr("transform", d => `translate(0,${y(d.key) + boxHeight / 2})`);
+
+                g.append("line")
+                    .attr("class", "range")
+                    .attr("x1", 0)
+                    .attr("x2", 0)
+                    .attr("y1", 0)
+                    .attr("y2", 0)
+                    .attr("stroke", "black")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x1", d => x(d.min))
+                    .attr("x2", d => x(d.max));
+
+                g.append("rect")
+                    .attr("class", "box")
+                    .attr("x", 0)
+                    .attr("y", -boxHeight / 2)
+                    .attr("height", boxHeight)
+                    .attr("width", 0)
+                    .attr("stroke", "black")
+                    .style("fill", "#69b3a2")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x", d => x(d.q1))
+                    .attr("width", d => x(d.q3) - x(d.q1));
+
+                g.selectAll(".whisker")
+                    .data(d => [d.min, d.max])
+                    .enter()
+                    .append("line")
+                    .attr("class", "whisker")
+                    .attr("x1", 0)
+                    .attr("x2", 0)
+                    .attr("y1", -boxHeight / 2)
+                    .attr("y2", boxHeight / 2)
+                    .attr("stroke", "black")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x1", x)
+                    .attr("x2", x);
+
+                g.append("line")
+                    .attr("class", "median")
+                    .attr("x1", 0)
+                    .attr("x2", 0)
+                    .attr("y1", -boxHeight / 2)
+                    .attr("y2", boxHeight / 2)
+                    .attr("stroke", "black")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x1", d => x(d.median))
+                    .attr("x2", d => x(d.median));
+
+                g.selectAll(".outlier")
+                    .data(d => d.outliers)
+                    .join("circle")
+                    .attr("class", "outlier")
+                    .attr("cy", 0)
+                    .attr("cx", 0)
+                    .attr("r", 0)
+                    .attr("fill", "red")
+                    .attr("stroke", "black")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("cx", x)
+                    .attr("r", 3);
+
+                g.append("rect").attr("class", "hover")
+                    .attr("width", width)
+                    .attr("height", boxHeight)
+                    .attr("y", -boxHeight / 2)
+                    .attr("fill", "transparent")
+
+                return g;
+            },
+            update => {
+                update.transition()
+                    .duration(CONFIG.trantions)
+                    .attr("transform", d => `translate(0,${y(d.key) + boxHeight / 2})`)
+
+                update
+                    .select(".range")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x1", d => x(d.min))
+                    .attr("x2", d => x(d.max));
+
+                update
+                    .select("rect.box")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x", d => x(d.q1))
+                    .attr("y", -boxHeight / 2)
+                    .attr("height", boxHeight)
+                    .attr("width", d => x(d.q3) - x(d.q1))
+
+                update
+                    .selectAll(".whisker")
+                    .data(d => [d.min, d.max])
+                    .join("line")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x1", x)
+                    .attr("x2", x)
+                    .attr("y1", -boxHeight / 2)
+                    .attr("y2", boxHeight / 2);
+
+                update
+                    .select(".median")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x1", d => x(d.median))
+                    .attr("x2", d => x(d.median))
+                    .attr("y1", -boxHeight / 2)
+                    .attr("y2", boxHeight / 2);
+
+                update
+                    .selectAll(".outlier")
+                    .data(d => d.outliers)
+                    .join(
+                        enter => enter.append("circle")
+                            .attr("class", "outlier")
+                            .attr("cx", 0)
+                            .attr("cy", 0)
+                            .attr("r", 0)
+                            .attr("fill", "red")
+                            .attr("stroke", "black")
+                            .transition()
+                            .duration(CONFIG.trantions)
+                            .attr("cx", x)
+                            .attr("r", 3),
+                        update => update.transition()
+                            .duration(CONFIG.trantions)
+                            .attr("cx", x),
+                        exit => exit.transition()
+                            .duration(CONFIG.trantions).attr("r", 0).remove()
+                    )
+
+                return update;
+            },
+            exit => {
+
+                exit
+                    .select(".range")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x1", 0)
+                    .attr("x2", 0);
+
+                exit
+                    .select("rect.box")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x", 0)
+                    .attr("width", 0)
+
+                exit
+                    .selectAll(".whisker")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x1", 0)
+                    .attr("x2", 0);
+
+                exit
+                    .select(".median")
+                    .transition()
+                    .duration(CONFIG.trantions)
+                    .attr("x1", 0)
+                    .attr("x2", 0);
+
+                exit
+                    .selectAll(".outlier")
+                    .transition()
+                    .duration(CONFIG.trantions).attr("r", 0);
+
+                exit.transition()
+                    .delay(CONFIG.trantions)
+                    .remove();
+            }
+        )
+
+    svg.selectAll("g.box")
+        .on("mouseenter", (event, d) => {
+            svg.selectAll("g.box").attr("opacity", e => e == d ? 1 : 0.2);
+            d3.select("#visHeatmap")
+                .selectAll(".episodeMark")
+                .attr("opacity", e => e.imdb_season == d.key ? 1 : 0.2);
+        })
+        .on("mouseleave", (event, d) => {
+            svg.selectAll("g.box").attr("opacity", 1)
+            d3.select("#visHeatmap")
+                .selectAll(".episodeMark")
+                .attr("opacity", 1);
+        })
+}

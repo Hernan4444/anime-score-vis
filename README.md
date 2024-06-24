@@ -1,1 +1,1 @@
-# anime-score-vis
+# gintama-vis

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <title>Gintama</title>
+</head>
+
+<body>
+    <div style="text-align: center;">
+        <h1>Anime Score Visualization</h1>
+
+    </div>
+
+    <div id="configuration" class="row">
+        <h3>Configuration</h3>
+        <div>
+            <label for="anime">Select an anime: </label>
+            <select name="anime" id="anime">
+                <option value=""></option>
+            </select>
+
+        </div>
+        <div>
+            <label for="seasons">Show IMDB seasons as border color: </label>
+            <input type="checkbox" name="seasons" id="seasons">
+        </div>
+        <div>
+            <label for="minColor">Minimum Score for the color: </label>
+            <select name="minColor" id="minColor">
+                <option value="default" selected>Automatic</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+            </select>
+        </div>
+        <div>
+            <label for="maxColor">Maximun Score for the color: </label>
+            <select name="maxColor" id="maxColor">
+                <option value="default" selected>Automatic</option>
+                <option value="10">10</option>
+                <option value="9">9</option>
+                <option value="8">8</option>
+                <option value="7">7</option>
+                <option value="6">6</option>
+                <option value="5">5</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1</option>
+            </select>
+        </div>
+    </div>
+    <div id="vis1" class="visualization">
+        <div class="vis">
+            <svg id="visHeatmap"></svg>
+        </div>
+        <div class="vis">
+            <svg id="visBoxplot"></svg>
+        </div>
+        <div class="info">
+            <h3>Information</h3>
+            <img src="" alt="" width="490" height="auto" id="imgInfo">
+            <div><span>Title: </span><span id="titleInfo"></span></div>
+            <div><span>IMDB Season: </span><span id="seasonInfo"></span></div>
+            <div><span>Release: </span><span id="releaseInfo"></span></div>
+            <div><span>Sinopsys: </span><span id="sinopsysInfo"></span></div>
+        </div>
+
+    </div>
+
+    </div>
+
+    <script src="main.js"></script>
+</body>
+
+</html>
