@@ -85,6 +85,7 @@ function updateInfoDiv(anime, chapter) {
     d3.select("#imgInfo").attr("src", `code/img/${anime}/img_${chapter.id}.jpg`)
     d3.select("#titleInfo").text(chapter.title)
     d3.select("#seasonInfo").text(chapter.imdb_season)
+    d3.select("#chapterInfo").text(chapter.chapter)
     let options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     d3.select("#releaseInfo").text(chapter.release.toLocaleDateString("en-US", options))
     d3.select("#sinopsysInfo").text(chapter.subtitle)
@@ -118,36 +119,27 @@ function heatmap() {
         const scoreScale = d3.scaleSequential(d3.interpolateReds)
             .domain([minScoreValue, maxScoreValue]);
 
-        const seasonScale = d3.scaleOrdinal(d3.schemeDark2)
-            .domain(d.map(d => d.imdb_season));
-
         const posScoreScale = d3.scaleLinear()
             .domain([minScoreValue, maxScoreValue])
             .range([0, visWidth]);
 
-        const paintBorder = () => {
-            visG.selectAll(".episodeMark")
-                .attr("stroke", d => scoreScale(d.score))
-        }
-
 
         let last = 1;
-        let pos = [0, 0];
+        let pos = [-1, 0];
         d.map((e, i) => {
-            e.pos = [pos[0], pos[1]];
             pos[0]++;
-            if (pos[0] == N) {
-                pos[1]++;
-                pos[0] = 0
-            }
-
             if (e.imdb_season != last) {
                 pos[1]++;
                 pos[1]++;
                 pos[0] = 0
                 last = e.imdb_season
-                e.pos = [pos[0], pos[1]];
             }
+
+            if (pos[0] == N) {
+                pos[1]++;
+                pos[0] = 0
+            }
+            e.pos = [pos[0], pos[1]];
         })
 
 
@@ -159,7 +151,7 @@ function heatmap() {
 
                     if (CONFIG.border) {
                         mark.attr("transform", (d, i) => {
-                            let x = (d.pos[0]) * (2 * R + DELTA);
+                            let x = d.pos[0] * (2 * R + DELTA);
                             let y = d.pos[1] * (2 * R + DELTA);
                             return `translate(${x}, ${y})`;
                         })
@@ -171,7 +163,6 @@ function heatmap() {
                             return `translate(${x}, ${y})`;
                         })
                     }
-
 
                     const canon = mark.filter(d => d.canon == "canon")
                         .append("rect")
@@ -256,13 +247,12 @@ function heatmap() {
                     .selectAll("g.box")
                     .attr("opacity", d => selected.imdb_season == d.key ? 1 : 0.2);
 
-                updateInfoDiv(anime, selected)
-
+                updateInfoDiv(anime, selected);
             })
             .on("mouseleave", (event, d) => {
                 legendRect.attr("opacity", 0);
                 d3.select("#visBoxplot").selectAll("g.box").attr("opacity", 1);
-                paintBorder();
+                visG.selectAll(".episodeMark").attr("stroke", d => scoreScale(d.score))
             })
 
         d3.select("#seasons").on("click", event => {
