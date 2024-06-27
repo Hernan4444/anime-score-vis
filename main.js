@@ -80,8 +80,12 @@ function startVisualization() {
 }
 
 
-function updateInfoDiv(anime, chapter) {
-    d3.select(".info").style("display", "block")
+function updateInfoDiv(anime, chapter, evento) {
+    d3.select(".info")
+        .style("opacity", "1")
+        .style("left", (evento.pageX + 15) + "px")
+        .style("top", (evento.pageY - 28) + "px");
+
     d3.select("#imgInfo").attr("src", `code/img/${anime}/img_${chapter.id}.jpg`)
     d3.select("#titleInfo").text(chapter.title)
     d3.select("#seasonInfo").text(chapter.imdb_season)
@@ -106,7 +110,7 @@ function heatmap() {
     const linearGradient = contextG.select("linearGradient");
 
     d3.tsv(`code/data/${anime}.tsv`, d3.autoType).then(d => {
-        updateInfoDiv(anime, d[0]);
+        // updateInfoDiv(anime, d[0]);
         boxPlot(d);
 
         let minScoreValue = d3.select("#minColor").property("value");
@@ -247,10 +251,11 @@ function heatmap() {
                     .selectAll("g.box")
                     .attr("opacity", d => selected.imdb_season == d.key ? 1 : 0.2);
 
-                updateInfoDiv(anime, selected);
+                updateInfoDiv(anime, selected, event);
             })
             .on("mouseleave", (event, d) => {
                 legendRect.attr("opacity", 0);
+                d3.select(".info").style("opacity", 0);
                 d3.select("#visBoxplot").selectAll("g.box").attr("opacity", 1);
                 visG.selectAll(".episodeMark").attr("stroke", d => scoreScale(d.score))
             })

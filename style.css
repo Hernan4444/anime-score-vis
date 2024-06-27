@@ -20,10 +20,13 @@ svg {
 }
 
 .info{
-    display: none;
-    width: 490px;
+    /* display: none; */
+    width: 300px;
     border: 1px solid gray;
     padding: 10px;
+    position: absolute;
+    background-color: lightblue;
+    pointer-events: none;
 }
 
 .info h3{
