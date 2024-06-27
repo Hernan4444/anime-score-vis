@@ -81,10 +81,15 @@ function startVisualization() {
 
 
 function updateInfoDiv(anime, chapter, evento) {
+
+    let width = document.body.clientWidth;
+
+    let posX = evento.pageX + 15 + 400 > width? evento.pageX - 300 - 45 : evento.pageX + 15;
+
     d3.select(".info")
         .style("opacity", "1")
-        .style("left", (evento.pageX + 15) + "px")
-        .style("top", (evento.pageY - 28) + "px");
+        .style("left", (posX) + "px")
+        .style("top", (evento.pageY + 15) + "px");
 
     d3.select("#imgInfo").attr("src", `code/img/${anime}/img_${chapter.id}.jpg`)
     d3.select("#titleInfo").text(chapter.title)
