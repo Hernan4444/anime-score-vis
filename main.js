@@ -7,7 +7,7 @@ let CONFIG = {
         margin: { top: 40, right: 30, bottom: 30, left: 60 }
     },
     heatmapParams: {
-        width: 630,
+        width: 500,
         height: 570,
         margin: { top: 90, rigth: 10, left: 20 }
     },
@@ -83,8 +83,21 @@ function startVisualization() {
 function updateInfoDiv(anime, chapter, evento) {
 
     let width = document.body.clientWidth;
+    console.log(width, evento.pageX)
 
-    let posX = evento.pageX + 15 + 400 > width? evento.pageX - 300 - 45 : evento.pageX + 15;
+    let posX;
+    if (evento.pageX + 15 + 300 > width) {
+        if (evento.pageX + 150 > width) {
+            posX = evento.pageX - 300 - 45
+        }
+        else {
+            posX = evento.pageX - 150
+        }
+    }
+    else {
+        posX = evento.pageX + 15;
+    }
+
 
     d3.select(".info")
         .style("opacity", "1")
