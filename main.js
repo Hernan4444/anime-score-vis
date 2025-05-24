@@ -3,12 +3,12 @@ let CONFIG = {
     anime: "Gintama",
     boxPlotParams: {
         width: 300,
-        height: 200,
+        height: 600,
         margin: { top: 40, right: 30, bottom: 30, left: 60 }
     },
     heatmapParams: {
-        width: 500,
-        height: 570,
+        width: 550,
+        height: 920,
         margin: { top: 90, rigth: 10, left: 20 }
     },
     trantions: 500,
@@ -117,7 +117,7 @@ function updateInfoDiv(anime, chapter, evento) {
 
 function heatmap() {
     const anime = CONFIG.anime;
-    const N = 32;
+    const N = 28;
     const R = 8;
     const DELTA = 3;
     const visWidth = (2 * R + DELTA) * N;
