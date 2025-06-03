@@ -17,7 +17,9 @@
     </div>
 
     <div id="configuration" class="row">
-        <h3>Configuration</h3>
+        <div>
+            <h3>Configuration</h3>
+        </div>
         <div>
             <label for="anime">Select an anime: </label>
             <select name="anime" id="anime">
@@ -25,10 +27,10 @@
             </select>
 
         </div>
-        <div>
+        <!-- <div>
             <label for="seasons">Split box per season: </label>
             <input type="checkbox" name="seasons" id="seasons">
-        </div>
+        </div> -->
         <div>
             <label for="minColor">Minimum Score for the color: </label>
             <select name="minColor" id="minColor">
@@ -68,6 +70,12 @@
         </div>
         <div class="vis">
             <svg id="visBoxplot"></svg>
+        </div>
+        <div class="vis">
+            <div class="column">
+                <svg id="visLineChart"></svg>
+                <svg id="visHistogram"></svg>
+            </div>
         </div>
         <div class="info" style="opacity: 0;">
             <h3>Information</h3>

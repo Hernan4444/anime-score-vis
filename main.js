@@ -1,17 +1,30 @@
 let CONFIG = {
     border: false,
-    anime: "Gintama",
+    anime: "Detective Conan",
     boxPlotParams: {
         width: 300,
-        height: 600,
-        margin: { top: 40, right: 30, bottom: 30, left: 60 }
+        height: 750,
+        margin: { top: 40, right: 10, bottom: 20, left: 20 }
     },
     heatmapParams: {
-        width: 550,
-        height: 920,
-        margin: { top: 90, rigth: 10, left: 20 }
+        width: 625,
+        height: 750,
+        margin: { top: 90, right: 10, left: 20 },
+        N: 32, // number of columns,
+        R: 8, // radius of the circles
+        DELTA: 3 // distance between columns
     },
-    trantions: 500,
+    linechart: {
+        width: 449,
+        height: 355,
+        margin: { top: 20, right: 10, left: 30, bottom: 20 }
+    },
+    histogram: {
+        width: 449,
+        height: 355,
+        margin: { top: 30, right: 10, left: 30, bottom: 20 }
+    },
+    transitions: 500,
 }
 
 d3.json("code/data.json").then(datasets => {
@@ -46,10 +59,10 @@ function startVisualization() {
             .attr("height", HEIGHT);
 
         svg.append("g").attr("id", "visG")
-            .attr("transform", `translate(${MARGIN.rigth}, ${MARGIN.top})`);
+            .attr("transform", `translate(${MARGIN.right}, ${MARGIN.top})`);
 
         const contextG = svg.append("g").append("g").attr("id", "contextG")
-            .attr("transform", `translate(${MARGIN.rigth}, 20)`)
+            .attr("transform", `translate(${MARGIN.right}, 20)`)
 
         contextG.append("defs")
             .append("linearGradient")
@@ -58,23 +71,72 @@ function startVisualization() {
 
     function prepareBoxplot() {
         const margin = CONFIG.boxPlotParams.margin
-        const width = CONFIG.boxPlotParams.width - margin.left - margin.right;
-        const height = CONFIG.boxPlotParams.height - margin.top - margin.bottom;
+        const width = CONFIG.boxPlotParams.width;
+        const height = CONFIG.boxPlotParams.height;
 
         let vis = d3.select("#visBoxplot")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
+            .attr("width", width)
+            .attr("height", height)
             .append("g").attr("class", "vis")
             .attr("transform", `translate(${margin.left},${margin.top})`)
 
+        const realHeight = height - margin.top - margin.bottom;
         vis.append("g").attr("class", "axisY")
-        vis.append("g").attr("class", "axisX").attr("transform", `translate(0,${height})`)
+        vis.append("g").attr("class", "axisX").attr("transform", `translate(0,${realHeight})`);
 
+    }
+
+    function prepareLinechart() {
+        const margin = CONFIG.linechart.margin;
+        const width = CONFIG.linechart.width;
+        const height = CONFIG.linechart.height;
+
+        let vis = d3.select("#visLineChart")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g").attr("class", "vis")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const realHeight = height - margin.top - margin.bottom;
+        vis.append("g").attr("class", "axisY")
+        vis.append("g").attr("class", "axisX").attr("transform", `translate(0,${realHeight})`);
+        d3.select("#visLineChart").append("text").attr("class", "title")
+            .attr("x", width / 2)
+            .attr("y", 10)
+            .attr("dominant-baseline", "middle")
+            .attr("text-anchor", "middle")
+            .text("Score per Chapter");
+
+    }
+    function prepareHistogram() {
+        const margin = CONFIG.histogram.margin;
+        const width = CONFIG.histogram.width;
+        const height = CONFIG.histogram.height;
+
+        let vis = d3.select("#visHistogram")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g").attr("class", "vis")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const realHeight = height - margin.top - margin.bottom;
+        vis.append("g").attr("class", "axisY")
+        vis.append("g").attr("class", "axisX").attr("transform", `translate(0,${realHeight})`);
+
+        d3.select("#visHistogram").append("text").attr("class", "title")
+            .attr("x", width / 2)
+            .attr("y", 10)
+            .attr("dominant-baseline", "middle")
+            .attr("text-anchor", "middle")
+            .text("Score Distribution");
     }
 
 
     prepareHeatmap()
     prepareBoxplot()
+    prepareLinechart()
+    prepareHistogram()
+
 
     heatmap()
 }
@@ -83,7 +145,6 @@ function startVisualization() {
 function updateInfoDiv(anime, chapter, evento) {
 
     let width = document.body.clientWidth;
-    console.log(width, evento.pageX)
 
     let posX;
     if (evento.pageX + 15 + 300 > width) {
@@ -117,9 +178,10 @@ function updateInfoDiv(anime, chapter, evento) {
 
 function heatmap() {
     const anime = CONFIG.anime;
-    const N = 28;
-    const R = 8;
-    const DELTA = 3;
+    const N = CONFIG.heatmapParams.N; // number of columns
+    const R = CONFIG.heatmapParams.R; // radius of the circles
+    const DELTA = CONFIG.heatmapParams.DELTA; // space between circles
+
     const visWidth = (2 * R + DELTA) * N;
 
     const svg = d3.select("#visHeatmap");
@@ -130,6 +192,8 @@ function heatmap() {
     d3.tsv(`code/data/${anime}.tsv`, d3.autoType).then(d => {
         // updateInfoDiv(anime, d[0]);
         boxPlot(d);
+        linechart(d)
+        histogram(d);
 
         let minScoreValue = d3.select("#minColor").property("value");
         let maxScoreValue = d3.select("#maxColor").property("value");
@@ -195,7 +259,7 @@ function heatmap() {
                         .attr("fill", d => scoreScale(d.score))
 
 
-                    canon.transition().duration(CONFIG.trantions)
+                    canon.transition().duration(CONFIG.transitions)
                         .attr("x", 0)
                         .attr("y", 0)
                         .attr("width", 2 * R)
@@ -218,7 +282,7 @@ function heatmap() {
                     if (CONFIG.border) {
                         update
                             .transition("as")
-                            .duration(CONFIG.trantions)
+                            .duration(CONFIG.transitions)
                             .attr("transform", (d, i) => {
                                 let x = (d.pos[0]) * (2 * R + DELTA);
                                 let y = d.pos[1] * (2 * R + DELTA);
@@ -228,7 +292,7 @@ function heatmap() {
                     else {
                         update
                             .transition("as")
-                            .duration(CONFIG.trantions)
+                            .duration(CONFIG.transitions)
                             .attr("transform", (d, i) => {
                                 let x = (i % N) * (2 * R + DELTA);
                                 let y = Math.floor(i / N) * (2 * R + DELTA);
@@ -238,24 +302,24 @@ function heatmap() {
 
                     update
                         .select("rect")
-                        .transition().duration(CONFIG.trantions)
+                        .transition().duration(CONFIG.transitions)
                         .attr("fill", d => scoreScale(d.score))
 
                     update
-                        .transition("stroke").duration(CONFIG.trantions)
+                        .transition("stroke").duration(CONFIG.transitions)
                         .attr("stroke", d => scoreScale(d.score))
 
                     return update
                 },
                 exit => {
                     exit.selectAll("rect")
-                        .transition().duration(CONFIG.trantions)
+                        .transition().duration(CONFIG.transitions)
                         .attr("width", 0)
                         .attr("height", 0)
                         .attr("x", R)
                         .attr("y", R)
 
-                    return exit.transition().delay(CONFIG.trantions).remove()
+                    return exit.transition().delay(CONFIG.transitions).remove()
                 }
             )
             .on("mouseenter", (event, selected) => {
@@ -435,7 +499,7 @@ function boxPlot(data) {
                     .attr("y2", 0)
                     .attr("stroke", "black")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.min))
                     .attr("x2", d => x(d.max));
 
@@ -448,7 +512,7 @@ function boxPlot(data) {
                     .attr("stroke", "black")
                     .style("fill", d => seasonScale(d.key))
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x", d => x(d.q1))
                     .attr("width", d => x(d.q3) - x(d.q1));
 
@@ -463,7 +527,7 @@ function boxPlot(data) {
                     .attr("y2", boxHeight / 2)
                     .attr("stroke", "black")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x1", x)
                     .attr("x2", x);
 
@@ -475,7 +539,7 @@ function boxPlot(data) {
                     .attr("y2", boxHeight / 2)
                     .attr("stroke", "black")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.median))
                     .attr("x2", d => x(d.median));
 
@@ -489,7 +553,7 @@ function boxPlot(data) {
                     .attr("fill", "red")
                     .attr("stroke", "black")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("cx", x)
                     .attr("r", 3);
 
@@ -503,20 +567,24 @@ function boxPlot(data) {
             },
             update => {
                 update.transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("transform", d => `translate(0,${y(d.key) + boxHeight / 2})`)
+
+                update.select(".hover")
+                    .attr("height", boxHeight)
+                    .attr("y", -boxHeight / 2)
 
                 update
                     .select(".range")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.min))
                     .attr("x2", d => x(d.max));
 
                 update
                     .select("rect.box")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x", d => x(d.q1))
                     .attr("y", -boxHeight / 2)
                     .attr("height", boxHeight)
@@ -527,7 +595,7 @@ function boxPlot(data) {
                     .data(d => [d.min, d.max])
                     .join("line")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x1", x)
                     .attr("x2", x)
                     .attr("y1", -boxHeight / 2)
@@ -536,7 +604,7 @@ function boxPlot(data) {
                 update
                     .select(".median")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.median))
                     .attr("x2", d => x(d.median))
                     .attr("y1", -boxHeight / 2)
@@ -554,14 +622,14 @@ function boxPlot(data) {
                             .attr("fill", "red")
                             .attr("stroke", "black")
                             .transition()
-                            .duration(CONFIG.trantions)
+                            .duration(CONFIG.transitions)
                             .attr("cx", x)
                             .attr("r", 3),
                         update => update.transition()
-                            .duration(CONFIG.trantions)
+                            .duration(CONFIG.transitions)
                             .attr("cx", x),
                         exit => exit.transition()
-                            .duration(CONFIG.trantions).attr("r", 0).remove()
+                            .duration(CONFIG.transitions).attr("r", 0).remove()
                     )
 
                 return update;
@@ -571,53 +639,192 @@ function boxPlot(data) {
                 exit
                     .select(".range")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x1", 0)
                     .attr("x2", 0);
 
                 exit
                     .select("rect.box")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x", 0)
                     .attr("width", 0)
 
                 exit
                     .selectAll(".whisker")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x1", 0)
                     .attr("x2", 0);
 
                 exit
                     .select(".median")
                     .transition()
-                    .duration(CONFIG.trantions)
+                    .duration(CONFIG.transitions)
                     .attr("x1", 0)
                     .attr("x2", 0);
 
                 exit
                     .selectAll(".outlier")
                     .transition()
-                    .duration(CONFIG.trantions).attr("r", 0);
+                    .duration(CONFIG.transitions).attr("r", 0);
 
                 exit.transition()
-                    .delay(CONFIG.trantions)
+                    .delay(CONFIG.transitions)
                     .remove();
             }
         )
 
+    let selectedSeason = null;
     svg.selectAll("g.box")
-        .on("mouseenter", (event, d) => {
+        .on("click", (event, d) => {
+            if (selectedSeason == d.key) {
+                selectedSeason = null;
+                svg.selectAll("g.box").attr("opacity", 1);
+                d3.select("#visHeatmap").selectAll(".episodeMark").attr("opacity", 1);
+                linechart(data, null, null);
+                histogram(data, null, null);
+                return;
+            } else {
+                selectedSeason = d.key;
+            }
+            let color = seasonScale(d.key)
+            // Actualizar las visualizaciones secundarias
+            linechart(data.filter(e => e.imdb_season == d.key), d.key, color);
+            histogram(data.filter(e => e.imdb_season == d.key), d.key, color);
+
+            // Resaltar la temporada seleccionada
             svg.selectAll("g.box").attr("opacity", e => e == d ? 1 : 0.2);
             d3.select("#visHeatmap")
                 .selectAll(".episodeMark")
                 .attr("opacity", e => e.imdb_season == d.key ? 1 : 0.2);
         })
-        .on("mouseleave", (event, d) => {
-            svg.selectAll("g.box").attr("opacity", 1)
-            d3.select("#visHeatmap")
-                .selectAll(".episodeMark")
-                .attr("opacity", 1);
-        })
+}
+
+function linechart(data, season, color="steelblue") {
+    const svg = d3.select("#visLineChart").select(".vis");
+    const margin = CONFIG.linechart.margin;
+    const width = CONFIG.linechart.width - margin.left - margin.right;
+    const height = CONFIG.linechart.height - margin.top - margin.bottom;
+
+    d3.select("#visLineChart")
+        .select(".title")
+        .text(season == null ? "Score per Chapter" : `Score per Chapter in Season ${season}`)
+
+    const x = d3.scaleLinear()
+        .domain([0, data.length])
+        .range([0, width]);
+
+    const y = d3.scaleLinear()
+        .domain([0, 10])
+        .range([height, 0])
+        .nice();
+
+    svg.select(".axisX").call(d3.axisBottom(x).ticks(5));
+    svg.select(".axisY").call(d3.axisLeft(y).ticks(5));
+
+    const line = d3.line()
+        .x((_, i) => x(i))
+        .y(d => y(d.score))
+        .curve(d3.curveNatural);
+
+    svg.selectAll(".line").data([data])
+        .join(
+            enter => enter.append("path")
+                .attr("class", "line")
+                .attr("fill", "none")
+                .attr("stroke", color)
+                .attr("stroke-width", 2)
+                .attr("opacity", 0)
+                .attr("d", d => line(d))
+                .transition()
+                .duration(CONFIG.transitions)
+                .attr("opacity", 1),
+
+            update => update
+                .transition()
+                .duration(CONFIG.transitions / 2)
+                .attr("opacity", 0)
+                .transition()
+                .duration(0)
+                .attr("stroke", color)
+                .attr("d", d => line(d))
+                .transition()
+                .duration(CONFIG.transitions / 2)
+                .attr("opacity", 1),
+            exit => exit.transition()
+                .duration(CONFIG.transitions / 2)
+                .attr("opacity", 0)
+                .remove()
+        );
+
+}
+
+function histogram(data, season, color="steelblue") {
+    const svg = d3.select("#visHistogram").select(".vis");
+    const margin = CONFIG.histogram.margin;
+    const width = CONFIG.histogram.width - margin.left - margin.right;
+    const height = CONFIG.histogram.height - margin.top - margin.bottom;
+
+    d3.select("#visHistogram")
+        .select(".title")
+        .text(season == null ? "Score Distribution" : `Score Distribution in Season ${season}`)
+
+
+    const bins = d3.bin()
+        .thresholds(10)
+        .value(d => d.score);
+
+    const histogramData = bins(data)
+
+
+    const x = d3.scaleBand()
+        .domain(histogramData.map(d => d.x0))
+        .range([0, width])
+        .padding(0.1)
+        .align(0.5);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(histogramData, d => d.length)])
+        .range([height, 0])
+        .nice();
+
+    let ticks = y.ticks();
+    ticks = ticks.filter(tick => Number.isInteger(tick));
+
+    
+    svg.select(".axisX").call(d3.axisBottom(x));
+    svg.select(".axisY").call(d3.axisLeft(y).tickValues(ticks).tickFormat(d3.format("d")));
+
+    svg.selectAll(".bar")
+        .data(histogramData, d => d.score)
+        .join(
+            enter => enter.append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.x0))
+                .attr("y", height)
+                .attr("width", x.bandwidth())
+                .attr("height", 0)
+                .attr("fill", color)
+                .transition()
+                .duration(CONFIG.transitions)
+                .attr("y", d => y(d.length))
+                .attr("height", d => height - y(d.length)),
+
+            update => update
+                .transition()
+                .duration(CONFIG.transitions)
+                .attr("x", d => x(d.x0))
+                .attr("y", d => y(d.length))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d.length))
+                .attr("fill", color),
+
+            exit => exit.transition()
+                .duration(CONFIG.transitions)
+                .attr("height", 0)
+                .remove()
+        );
+
+
 }

@@ -2,9 +2,19 @@ body {
     margin: 0 auto;
     /* Puedes cambiar el color de fondo (background-color) si lo deseas */
     background-color: lightblue;
-    max-width: 1200px;
+    max-width: 1500px;
     min-width: 500px;
     padding: 10px;
+}
+
+.row{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+.row div{
+    margin-right: 20px;
 }
 
 svg {
@@ -14,12 +24,22 @@ svg {
 }
 
 
-.visualization{
+.visualization {
     display: flex;
     flex-wrap: wrap;
 }
 
-.info{
+.column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.column svg {
+    margin-bottom: 20px;
+}
+
+.info {
     /* display: none; */
     width: 300px;
     border: 1px solid gray;
@@ -29,23 +49,23 @@ svg {
     pointer-events: none;
 }
 
-.info h3{
+.info h3 {
     margin-top: 0px;
 }
 
-.configuration{
+.configuration {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
 }
 
-#configuration div{
+#configuration div {
     display: flex;
     align-items: center;
     margin-bottom: 5px;
 }
 
-input[type='checkbox']{
+input[type='checkbox'] {
     margin: 0px;
     width: 19px;
     height: 19px;
