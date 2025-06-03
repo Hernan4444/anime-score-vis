@@ -1,6 +1,6 @@
 let CONFIG = {
     border: false,
-    anime: "Detective Conan",
+    anime: "Gintama",
     boxPlotParams: {
         width: 300,
         height: 750,
