@@ -27,6 +27,14 @@ let CONFIG = {
     transitions: 500,
 }
 
+
+d3.select("#darkmode").on("click", event => {
+    d3.select("body").classed("dark-theme", event.target.checked);
+    d3.select("#visBoxplot")
+        .selectAll(".vis g.box")
+        .attr("stroke", event.target.checked ? "#B0B0B0" : "black");
+})
+
 d3.json("code/data.json").then(datasets => {
     console.log(datasets)
     let names = datasets.map(d => d.name)
@@ -173,8 +181,6 @@ function updateInfoDiv(anime, chapter, evento) {
     d3.select("#releaseInfo").text(chapter.release.toLocaleDateString("en-US", options))
     d3.select("#sinopsysInfo").text(chapter.subtitle)
 }
-
-
 
 function heatmap() {
     const anime = CONFIG.anime;
@@ -331,14 +337,15 @@ function heatmap() {
 
                 d3.select("#visBoxplot")
                     .selectAll("g.box")
-                    .style("stroke", d => d.key == selected.imdb_season ? "red" : null)
+                    .select(".hover")
+                    .style("stroke", d => d.key == selected.imdb_season ? "red" : "transparent");
 
                 updateInfoDiv(anime, selected, event);
             })
             .on("mouseleave", (event, d) => {
                 legendRect.attr("opacity", 0);
                 d3.select(".info").style("opacity", 0);
-                d3.select("#visBoxplot").selectAll("g.box").style("stroke", null)
+                d3.select("#visBoxplot").selectAll("g.box").select(".hover").style("stroke", "transparent");
                 visG.selectAll(".episodeMark").attr("stroke", d => scoreScale(d.score))
             })
 
@@ -358,10 +365,14 @@ function heatmap() {
             .attr("class", "title")
             .text(d => `${d} Score per Chapter`);
 
+        let delta = maxScoreValue - minScoreValue
         linearGradient
             .selectAll("stop")
             .data([
                 { offset: "0%", color: scoreScale(minScoreValue) },
+                { offset: "25%", color: scoreScale(minScoreValue + delta / 4) },
+                { offset: "50%", color: scoreScale(minScoreValue + delta / 2) },
+                { offset: "75%", color: scoreScale(minScoreValue + 3 * delta / 4) },
                 { offset: "100%", color: scoreScale(maxScoreValue) }
             ])
             .join("stop")
@@ -489,7 +500,8 @@ function boxPlot(data) {
             enter => {
                 const g = enter.append("g")
                     .attr("class", "box")
-                    .attr("transform", d => `translate(0,${y(d.key) + boxHeight / 2})`);
+                    .attr("transform", d => `translate(0,${y(d.key) + boxHeight / 2})`)
+                    .attr("stroke", "#B0B0B0");
 
                 g.append("line")
                     .attr("class", "range")
@@ -497,7 +509,6 @@ function boxPlot(data) {
                     .attr("x2", 0)
                     .attr("y1", 0)
                     .attr("y2", 0)
-                    .attr("stroke", "black")
                     .transition("boxplot-enter-line")
                     .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.min))
@@ -509,7 +520,6 @@ function boxPlot(data) {
                     .attr("y", -boxHeight / 2)
                     .attr("height", boxHeight)
                     .attr("width", 0)
-                    .attr("stroke", "black")
                     .style("fill", d => seasonScale(d.key))
                     .transition("boxplot-enter-rect")
                     .duration(CONFIG.transitions)
@@ -525,7 +535,6 @@ function boxPlot(data) {
                     .attr("x2", 0)
                     .attr("y1", -boxHeight / 2)
                     .attr("y2", boxHeight / 2)
-                    .attr("stroke", "black")
                     .transition("boxplot-enter-whisker")
                     .duration(CONFIG.transitions)
                     .attr("x1", x)
@@ -537,7 +546,6 @@ function boxPlot(data) {
                     .attr("x2", 0)
                     .attr("y1", -boxHeight / 2)
                     .attr("y2", boxHeight / 2)
-                    .attr("stroke", "black")
                     .transition("boxplot-enter-median")
                     .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.median))
@@ -551,7 +559,6 @@ function boxPlot(data) {
                     .attr("cx", 0)
                     .attr("r", 0)
                     .attr("fill", "red")
-                    .attr("stroke", "black")
                     .transition("boxplot-enter-outlier")
                     .duration(CONFIG.transitions)
                     .attr("cx", x)
@@ -562,6 +569,7 @@ function boxPlot(data) {
                     .attr("height", boxHeight)
                     .attr("y", -boxHeight / 2)
                     .attr("fill", "transparent")
+                    .attr("stroke", "transparent")
 
                 return g;
             },
@@ -620,7 +628,6 @@ function boxPlot(data) {
                             .attr("cy", 0)
                             .attr("r", 0)
                             .attr("fill", "red")
-                            .attr("stroke", "black")
                             .transition("boxplot-update-outlier-enter")
                             .duration(CONFIG.transitions)
                             .attr("cx", x)
@@ -798,7 +805,7 @@ function histogram(data, season, color = "steelblue") {
 
     // Hace que el eje X diga el rango de cada barra
     svg.select(".axisX").call(d3.axisBottom(x));
-    
+
     svg.select(".axisX")
         .selectAll("text")
         .data(histogramData)
