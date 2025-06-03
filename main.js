@@ -331,14 +331,14 @@ function heatmap() {
 
                 d3.select("#visBoxplot")
                     .selectAll("g.box")
-                    .attr("opacity", d => selected.imdb_season == d.key ? 1 : 0.2);
+                    .style("stroke", d => d.key == selected.imdb_season ? "red" : null)
 
                 updateInfoDiv(anime, selected, event);
             })
             .on("mouseleave", (event, d) => {
                 legendRect.attr("opacity", 0);
                 d3.select(".info").style("opacity", 0);
-                d3.select("#visBoxplot").selectAll("g.box").attr("opacity", 1);
+                d3.select("#visBoxplot").selectAll("g.box").style("stroke", null)
                 visG.selectAll(".episodeMark").attr("stroke", d => scoreScale(d.score))
             })
 
@@ -676,6 +676,9 @@ function boxPlot(data) {
         )
 
     let selectedSeason = null;
+    svg.selectAll("g.box").attr("opacity", 1);
+    d3.select("#visHeatmap").selectAll(".episodeMark").attr("opacity", 1);
+
     svg.selectAll("g.box")
         .on("click", (event, d) => {
             if (selectedSeason == d.key) {
@@ -701,7 +704,7 @@ function boxPlot(data) {
         })
 }
 
-function linechart(data, season, color="steelblue") {
+function linechart(data, season, color = "steelblue") {
     const svg = d3.select("#visLineChart").select(".vis");
     const margin = CONFIG.linechart.margin;
     const width = CONFIG.linechart.width - margin.left - margin.right;
@@ -760,7 +763,7 @@ function linechart(data, season, color="steelblue") {
 
 }
 
-function histogram(data, season, color="steelblue") {
+function histogram(data, season, color = "steelblue") {
     const svg = d3.select("#visHistogram").select(".vis");
     const margin = CONFIG.histogram.margin;
     const width = CONFIG.histogram.width - margin.left - margin.right;
@@ -775,7 +778,8 @@ function histogram(data, season, color="steelblue") {
         .thresholds(10)
         .value(d => d.score);
 
-    const histogramData = bins(data)
+    const histogramData = bins(data);
+    console.log(histogramData);
 
 
     const x = d3.scaleBand()
@@ -792,12 +796,12 @@ function histogram(data, season, color="steelblue") {
     let ticks = y.ticks();
     ticks = ticks.filter(tick => Number.isInteger(tick));
 
-    
+
     svg.select(".axisX").call(d3.axisBottom(x));
     svg.select(".axisY").call(d3.axisLeft(y).tickValues(ticks).tickFormat(d3.format("d")));
 
     svg.selectAll(".bar")
-        .data(histogramData, d => d.score)
+        .data(histogramData, d => d.x0)
         .join(
             enter => enter.append("rect")
                 .attr("class", "bar")
