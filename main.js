@@ -823,6 +823,7 @@ function histogram(data, season, color="steelblue") {
             exit => exit.transition("histogram-exit")
                 .duration(CONFIG.transitions)
                 .attr("height", 0)
+                .attr("y", height)
                 .remove()
         );
 
