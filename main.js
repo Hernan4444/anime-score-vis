@@ -259,7 +259,7 @@ function heatmap() {
                         .attr("fill", d => scoreScale(d.score))
 
 
-                    canon.transition().duration(CONFIG.transitions)
+                    canon.transition("heatmap-enter").duration(CONFIG.transitions)
                         .attr("x", 0)
                         .attr("y", 0)
                         .attr("width", 2 * R)
@@ -281,7 +281,7 @@ function heatmap() {
                 update => {
                     if (CONFIG.border) {
                         update
-                            .transition("as")
+                            .transition("heatmap-update")
                             .duration(CONFIG.transitions)
                             .attr("transform", (d, i) => {
                                 let x = (d.pos[0]) * (2 * R + DELTA);
@@ -291,7 +291,7 @@ function heatmap() {
                     }
                     else {
                         update
-                            .transition("as")
+                            .transition("heatmap-update")
                             .duration(CONFIG.transitions)
                             .attr("transform", (d, i) => {
                                 let x = (i % N) * (2 * R + DELTA);
@@ -302,24 +302,24 @@ function heatmap() {
 
                     update
                         .select("rect")
-                        .transition().duration(CONFIG.transitions)
+                        .transition("heatmap-update-fill").duration(CONFIG.transitions)
                         .attr("fill", d => scoreScale(d.score))
 
                     update
-                        .transition("stroke").duration(CONFIG.transitions)
+                        .transition("heatmap-update-stroke").duration(CONFIG.transitions)
                         .attr("stroke", d => scoreScale(d.score))
 
                     return update
                 },
                 exit => {
                     exit.selectAll("rect")
-                        .transition().duration(CONFIG.transitions)
+                        .transition("heatmap-exit").duration(CONFIG.transitions)
                         .attr("width", 0)
                         .attr("height", 0)
                         .attr("x", R)
                         .attr("y", R)
 
-                    return exit.transition().delay(CONFIG.transitions).remove()
+                    return exit.transition("heatmap-exit-remove").delay(CONFIG.transitions).remove()
                 }
             )
             .on("mouseenter", (event, selected) => {
@@ -498,7 +498,7 @@ function boxPlot(data) {
                     .attr("y1", 0)
                     .attr("y2", 0)
                     .attr("stroke", "black")
-                    .transition()
+                    .transition("boxplot-enter-line")
                     .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.min))
                     .attr("x2", d => x(d.max));
@@ -511,7 +511,7 @@ function boxPlot(data) {
                     .attr("width", 0)
                     .attr("stroke", "black")
                     .style("fill", d => seasonScale(d.key))
-                    .transition()
+                    .transition("boxplot-enter-rect")
                     .duration(CONFIG.transitions)
                     .attr("x", d => x(d.q1))
                     .attr("width", d => x(d.q3) - x(d.q1));
@@ -526,7 +526,7 @@ function boxPlot(data) {
                     .attr("y1", -boxHeight / 2)
                     .attr("y2", boxHeight / 2)
                     .attr("stroke", "black")
-                    .transition()
+                    .transition("boxplot-enter-whisker")
                     .duration(CONFIG.transitions)
                     .attr("x1", x)
                     .attr("x2", x);
@@ -538,7 +538,7 @@ function boxPlot(data) {
                     .attr("y1", -boxHeight / 2)
                     .attr("y2", boxHeight / 2)
                     .attr("stroke", "black")
-                    .transition()
+                    .transition("boxplot-enter-median")
                     .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.median))
                     .attr("x2", d => x(d.median));
@@ -552,7 +552,7 @@ function boxPlot(data) {
                     .attr("r", 0)
                     .attr("fill", "red")
                     .attr("stroke", "black")
-                    .transition()
+                    .transition("boxplot-enter-outlier")
                     .duration(CONFIG.transitions)
                     .attr("cx", x)
                     .attr("r", 3);
@@ -566,7 +566,7 @@ function boxPlot(data) {
                 return g;
             },
             update => {
-                update.transition()
+                update.transition("boxplot-update-position")
                     .duration(CONFIG.transitions)
                     .attr("transform", d => `translate(0,${y(d.key) + boxHeight / 2})`)
 
@@ -576,14 +576,14 @@ function boxPlot(data) {
 
                 update
                     .select(".range")
-                    .transition()
+                    .transition("boxplot-update-range")
                     .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.min))
                     .attr("x2", d => x(d.max));
 
                 update
                     .select("rect.box")
-                    .transition()
+                    .transition("boxplot-update-rect")
                     .duration(CONFIG.transitions)
                     .attr("x", d => x(d.q1))
                     .attr("y", -boxHeight / 2)
@@ -594,7 +594,7 @@ function boxPlot(data) {
                     .selectAll(".whisker")
                     .data(d => [d.min, d.max])
                     .join("line")
-                    .transition()
+                    .transition("boxplot-update-whisker")
                     .duration(CONFIG.transitions)
                     .attr("x1", x)
                     .attr("x2", x)
@@ -603,7 +603,7 @@ function boxPlot(data) {
 
                 update
                     .select(".median")
-                    .transition()
+                    .transition("boxplot-update-median")
                     .duration(CONFIG.transitions)
                     .attr("x1", d => x(d.median))
                     .attr("x2", d => x(d.median))
@@ -621,14 +621,14 @@ function boxPlot(data) {
                             .attr("r", 0)
                             .attr("fill", "red")
                             .attr("stroke", "black")
-                            .transition()
+                            .transition("boxplot-update-outlier-enter")
                             .duration(CONFIG.transitions)
                             .attr("cx", x)
                             .attr("r", 3),
-                        update => update.transition()
+                        update => update.transition("boxplot-update-outlier")
                             .duration(CONFIG.transitions)
                             .attr("cx", x),
-                        exit => exit.transition()
+                        exit => exit.transition("boxplot-update-outlier-exit")
                             .duration(CONFIG.transitions).attr("r", 0).remove()
                     )
 
@@ -638,38 +638,38 @@ function boxPlot(data) {
 
                 exit
                     .select(".range")
-                    .transition()
+                    .transition("boxplot-exit-range")
                     .duration(CONFIG.transitions)
                     .attr("x1", 0)
                     .attr("x2", 0);
 
                 exit
                     .select("rect.box")
-                    .transition()
+                    .transition("boxplot-exit-rect")
                     .duration(CONFIG.transitions)
                     .attr("x", 0)
                     .attr("width", 0)
 
                 exit
                     .selectAll(".whisker")
-                    .transition()
+                    .transition("boxplot-exit-whisker")
                     .duration(CONFIG.transitions)
                     .attr("x1", 0)
                     .attr("x2", 0);
 
                 exit
                     .select(".median")
-                    .transition()
+                    .transition("boxplot-exit-median")
                     .duration(CONFIG.transitions)
                     .attr("x1", 0)
                     .attr("x2", 0);
 
                 exit
                     .selectAll(".outlier")
-                    .transition()
+                    .transition("boxplot-exit-outlier")
                     .duration(CONFIG.transitions).attr("r", 0);
 
-                exit.transition()
+                exit.transition("boxplot-exit-remove")
                     .delay(CONFIG.transitions)
                     .remove();
             }
@@ -682,8 +682,8 @@ function boxPlot(data) {
                 selectedSeason = null;
                 svg.selectAll("g.box").attr("opacity", 1);
                 d3.select("#visHeatmap").selectAll(".episodeMark").attr("opacity", 1);
-                linechart(data, null, null);
-                histogram(data, null, null);
+                linechart(data, null);
+                histogram(data, null);
                 return;
             } else {
                 selectedSeason = d.key;
@@ -737,22 +737,22 @@ function linechart(data, season, color="steelblue") {
                 .attr("stroke-width", 2)
                 .attr("opacity", 0)
                 .attr("d", d => line(d))
-                .transition()
+                .transition("linechart-enter")
                 .duration(CONFIG.transitions)
                 .attr("opacity", 1),
 
             update => update
-                .transition()
+                .transition("linechart-update")
                 .duration(CONFIG.transitions / 2)
                 .attr("opacity", 0)
-                .transition()
+                .transition("linechart-update-path")
                 .duration(0)
                 .attr("stroke", color)
                 .attr("d", d => line(d))
-                .transition()
+                .transition("linechart-update-opacity")
                 .duration(CONFIG.transitions / 2)
                 .attr("opacity", 1),
-            exit => exit.transition()
+            exit => exit.transition("linechart-exit")
                 .duration(CONFIG.transitions / 2)
                 .attr("opacity", 0)
                 .remove()
@@ -806,13 +806,13 @@ function histogram(data, season, color="steelblue") {
                 .attr("width", x.bandwidth())
                 .attr("height", 0)
                 .attr("fill", color)
-                .transition()
+                .transition("histogram-enter")
                 .duration(CONFIG.transitions)
                 .attr("y", d => y(d.length))
                 .attr("height", d => height - y(d.length)),
 
             update => update
-                .transition()
+                .transition("histogram-update")
                 .duration(CONFIG.transitions)
                 .attr("x", d => x(d.x0))
                 .attr("y", d => y(d.length))
@@ -820,7 +820,7 @@ function histogram(data, season, color="steelblue") {
                 .attr("height", d => height - y(d.length))
                 .attr("fill", color),
 
-            exit => exit.transition()
+            exit => exit.transition("histogram-exit")
                 .duration(CONFIG.transitions)
                 .attr("height", 0)
                 .remove()
