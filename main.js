@@ -775,7 +775,7 @@ function histogram(data, season, color = "steelblue") {
 
 
     const bins = d3.bin()
-        .thresholds(10)
+        .thresholds(5)
         .value(d => d.score);
 
     const histogramData = bins(data);
@@ -796,8 +796,16 @@ function histogram(data, season, color = "steelblue") {
     let ticks = y.ticks();
     ticks = ticks.filter(tick => Number.isInteger(tick));
 
-
+    // Hace que el eje X diga el rango de cada barra
     svg.select(".axisX").call(d3.axisBottom(x));
+    
+    svg.select(".axisX")
+        .selectAll("text")
+        .data(histogramData)
+        .join("text")
+        .text(d => `[${d.x0} - ${d.x1})`);
+
+
     svg.select(".axisY").call(d3.axisLeft(y).tickValues(ticks).tickFormat(d3.format("d")));
 
     svg.selectAll(".bar")
